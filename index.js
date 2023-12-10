@@ -4,6 +4,12 @@ const router = require("./routes/url.js");
 const connectDB = require("./connect.js");
 const URL = require("./models/url.js");
 const staticRouter = require("./routes/staticRouter.js");
+const userRouter = require("./routes/user.js");
+const cookieParser = require("cookie-parser");
+const {
+  restrictToLoggesInUserOnly,
+  checkAuth,
+} = require("./middlewares/auth.js");
 
 const app = express();
 
@@ -19,12 +25,14 @@ connectDB("mongodb://127.0.0.1:27017/url-shortener")
 // middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 app.set("view engine", "ejs");
 app.set("views", path.resolve("./views"));
 
 // routes
-app.use("/url", router);
-app.use("/", staticRouter);
+app.use("/url", restrictToLoggesInUserOnly, router);
+app.use("/", checkAuth, staticRouter);
+app.use("/user", userRouter);
 app.get("/url/:shortId", async (req, res) => {
   const shortId = req.params.shortId;
   const entry = await URL.findOneAndUpdate(
